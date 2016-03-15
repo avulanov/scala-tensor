@@ -19,6 +19,7 @@ package org.apache.spark.ml.ann
 
 import org.scalatest.FunSuite
 
+
 class DenseTensorSuite  extends FunSuite {
 
   test ("value") {
@@ -53,6 +54,10 @@ class DenseTensorSuite  extends FunSuite {
 
   test ("apply function") {
     val shape2d = Array(4, 2)
+    val a = DenseTensor[Double](Array[Double](0, 1, 2, 3, 4, 5, 6, 7), shape2d)
+    DenseTensor.applyFunction(a, (t: Double) => t * t)
+    assert(a.copyData().deep == Array[Double](0, 1, 4, 9, 16, 25, 36, 49).deep,
+      "The result must be (1, 2, 3, 4, 5, 6, 7, 8)")
     val x = DenseTensor[Double](Array[Double](0, 1, 2, 3, 4, 5, 6, 7), shape2d)
     val y = DenseTensor[Double](shape2d)
     def func: (Double) => Double = v => v + 1
@@ -81,6 +86,80 @@ class DenseTensorSuite  extends FunSuite {
     assert(onesTensor.copyData().forall(x => x == 1.0), "All elements are 1.0")
   }
 
+  test ("plus double") {
+    val x = DenseTensor[Double](Array[Double](1, 2, 3, 4, 5, 6), Array(2, 3))
+    val y = DenseTensor[Double](Array[Double](1, 2, 3, 4, 5, 6), Array(2, 3))
+    val z = x + y
+    val trueZ = DenseTensor[Double](Array[Double](2, 4, 6, 8, 10, 12), Array(2, 3))
+    assert(z.equals(trueZ), "Transposed, shape or data differs")
+  }
+
+  test ("plus float") {
+    val x = DenseTensor[Float](Array[Float](1, 2, 3, 4, 5, 6), Array(2, 3))
+    val y = DenseTensor[Float](Array[Float](1, 2, 3, 4, 5, 6), Array(2, 3))
+    val z = x + y
+    val trueZ = DenseTensor[Float](Array[Float](2, 4, 6, 8, 10, 12), Array(2, 3))
+    assert(z.equals(trueZ), "Transposed, shape or data differs")
+  }
+
+  test ("minus double") {
+    val x = DenseTensor[Double](Array[Double](2, 4, 6, 8, 10, 12), Array(2, 3))
+    val y = DenseTensor[Double](Array[Double](1, 2, 3, 4, 5, 6), Array(2, 3))
+    val z = x - y
+    val trueZ = DenseTensor[Double](Array[Double](1, 2, 3, 4, 5, 6), Array(2, 3))
+    assert(z.equals(trueZ), "Transposed, shape or data differs")
+  }
+
+  test ("minus float") {
+    val x = DenseTensor[Float](Array[Float](2, 4, 6, 8, 10, 12), Array(2, 3))
+    val y = DenseTensor[Float](Array[Float](1, 2, 3, 4, 5, 6), Array(2, 3))
+    val z = x - y
+    val trueZ = DenseTensor[Float](Array[Float](1, 2, 3, 4, 5, 6), Array(2, 3))
+    assert(z.equals(trueZ), "Transposed, shape or data differs")
+  }
+
+  test ("elementwise product double") {
+    val x = DenseTensor[Double](Array[Double](1, 2, 3, 4, 5, 6), Array(2, 3))
+    val y = DenseTensor[Double](Array[Double](1, 2, 3, 4, 5, 6), Array(2, 3))
+    val z = x :* y
+    val trueZ = DenseTensor[Double](Array[Double](1, 4, 9, 16, 25, 36), Array(2, 3))
+    assert(z.equals(trueZ), "Transposed, shape or data differs")
+  }
+
+  test ("elementwise product float") {
+    val x = DenseTensor[Float](Array[Float](1, 2, 3, 4, 5, 6), Array(2, 3))
+    val y = DenseTensor[Float](Array[Float](1, 2, 3, 4, 5, 6), Array(2, 3))
+    val z = x :* y
+    val trueZ = DenseTensor[Float](Array[Float](1, 4, 9, 16, 25, 36), Array(2, 3))
+    assert(z.equals(trueZ), "Transposed, shape or data differs")
+  }
+
+  test ("sum double") {
+    val x = DenseTensor[Double](Array[Double](1, 2, 3, 4, 5, 6), Array(2, 3))
+    assert(x.sum == 21, "Sum has to be 21")
+  }
+
+  test ("sum float") {
+    val x = DenseTensor[Float](Array[Float](1, 2, 3, 4, 5, 6), Array(2, 3))
+    assert(x.sum == 21, "Sum has to be 21")
+  }
+
+  test ("axpy double precision") {
+    val alpha = 2
+    val x = DenseTensor[Double](Array[Double](0.5, 1, 1.5, 2, 2.5, 3), Array(6))
+    val y = DenseTensor[Double](Array[Double](1, 2, 3, 4, 5, 6), Array(6))
+    DenseTensor.axpy(alpha, x, y)
+    assert(y.copyData().deep == Array[Double](2, 4, 6, 8, 10, 12).deep)
+  }
+
+  test ("axpy single precision") {
+    val alpha = 2
+    val x = DenseTensor[Float](Array[Float](0.5f, 1f, 1.5f, 2f, 2.5f, 3f), Array(6))
+    val y = DenseTensor[Float](Array[Float](1, 2, 3, 4, 5, 6), Array(6))
+    DenseTensor.axpy(alpha, x, y)
+    assert(y.copyData().deep == Array[Float](2, 4, 6, 8, 10, 12).deep)
+  }
+
   test ("dgemm double precision") {
     val a = DenseTensor[Double](Array[Double](1, 2, 3, 4, 5, 6), Array(2, 3))
     val b = DenseTensor[Double](Array[Double](1, 2, 3, 4, 5, 6), Array(3, 2))
@@ -91,6 +170,14 @@ class DenseTensorSuite  extends FunSuite {
     assert(c.copyData().deep == Array[Double](22, 28, 49, 64).deep)
   }
 
+  test ("dgemm double precision transpose") {
+    val a = DenseTensor[Double](Array[Double](1, 2, 3, 4, 5, 6), Array(3, 2))
+    val b = DenseTensor[Double](Array[Double](1, 2, 3, 4, 5, 6), Array(3, 2))
+    val c = DenseTensor[Double](Array(2, 2))
+    DenseTensor.gemm(1.0, a.transpose, b, 0.0, c)
+    assert(c.copyData().deep == Array[Double](14, 32, 32, 77).deep)
+  }
+
   test ("dgemm single precision") {
     val a = DenseTensor[Float](Array[Float](1, 2, 3, 4, 5, 6), Array(2, 3))
     val b = DenseTensor[Float](Array[Float](1, 2, 3, 4, 5, 6), Array(3, 2))
@@ -99,6 +186,14 @@ class DenseTensorSuite  extends FunSuite {
     assert(c.copyData().deep == Array[Float](22, 28, 49, 64).deep)
     DenseTensor.gemm(0.5f, a, b, 0.5f, c)
     assert(c.copyData().deep == Array[Float](22, 28, 49, 64).deep)
+  }
+
+  test ("dgemm single precision transpose") {
+    val a = DenseTensor[Float](Array[Float](1, 2, 3, 4, 5, 6), Array(3, 2))
+    val b = DenseTensor[Float](Array[Float](1, 2, 3, 4, 5, 6), Array(3, 2))
+    val c = DenseTensor[Float](Array(2, 2))
+    DenseTensor.gemm(1.0f, a.transpose, b, 0.0f, c)
+    assert(c.copyData().deep == Array[Double](14, 32, 32, 77).deep)
   }
 
   test("gemv double precision") {
@@ -122,5 +217,10 @@ class DenseTensorSuite  extends FunSuite {
     val b = DenseTensor[Double](Array[Double](1, 2, 3, 4, 5, 6), Array(2, 3))
     DenseTensor.elementwiseProduct(a, b)
     assert(a.copyData().deep == Array[Double](1, 4, 9, 16, 25, 36).deep)
+  }
+
+  test ("to string") {
+    val a = DenseTensor[Double](Array[Double](1, 2, 3, 4, 5, 6), Array(2, 3))
+    println(a)
   }
 }
